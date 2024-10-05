@@ -4,24 +4,12 @@
 #include <filesystem>  // Para manejar la creación de carpetas
 
 void ProcesadorImagen::procesar_imagen(cv::Mat& imagen, const std::string& ruta_imagen) {
-    // Paso 1: Invertir los colores de la imagen completa
-    for (int y = 0; y < imagen.rows; y++) {
-        for (int x = 0; x < imagen.cols; x++) {
-            cv::Vec3b& color = imagen.at<cv::Vec3b>(y, x);
-            // Invertimos los colores, asegurándonos de que el formato de color siga siendo BGR.
-            color = cv::Vec3b(255 - color[0], 255 - color[1], 255 - color[2]);
-        }
-    }
 
-    // Guardar la imagen invertida para verificar cómo se ve antes de procesarla
-    std::string imagen_invertida = "imagen_invertida.jpg";
-    cv::imwrite(imagen_invertida, imagen);  // Guarda la imagen invertida
-
-    // Paso 2: Convertir la imagen invertida a escala de grises para la detección de rostros
+    // Paso 1: Convertir la imagen escala de grises para la detección de rostros
     cv::Mat imagen_gris(imagen.size(), CV_8UC1);
     convertir_a_grises(imagen, imagen_gris);
 
-    // Paso 3: Detectar los rostros en la imagen invertida
+    // Paso 2: Detectar los rostros en la imagen invertida
     std::vector<cv::Rect> rostros = detectar_rostros(imagen_gris);
 
     if (rostros.empty()) {
@@ -30,16 +18,17 @@ void ProcesadorImagen::procesar_imagen(cv::Mat& imagen, const std::string& ruta_
     }
 
     // Crear una carpeta con el nombre de la imagen para almacenar los rostros
-    std::string carpeta = "resultados_" + ruta_imagen;
+    std::string carpeta = "resultados" + ruta_imagen;
     std::filesystem::create_directory(carpeta);
 
-    // Paso 4: Dibujar los rectángulos en la imagen invertida y guardar la imagen procesada
+    // Paso 3: Dibujar los rectángulos en la imagen invertida y guardar la imagen procesada
     dibujar_rectangulos(imagen, rostros);
 
-    // Paso 5: Extraer los rostros de la imagen invertida y guardarlos en la carpeta
+    // Paso 4: Extraer los rostros de la imagen invertida y guardarlos en la carpeta
     guardar_rostros_individuales(imagen, rostros, carpeta);
 }
 
+//IMPLEMENTAR PARALELISMO
 void ProcesadorImagen::convertir_a_grises(cv::Mat& imagen_color, cv::Mat& imagen_gris) {
     // Convertimos cada pixel a escala de grises.
     for (int i = 0; i < imagen_color.rows; i++) {
@@ -64,6 +53,7 @@ std::vector<cv::Rect> ProcesadorImagen::detectar_rostros(cv::Mat& imagen_gris) {
     return rostros;
 }
 
+//IMPLEMENTAR PARALELISMO
 void ProcesadorImagen::dibujar_rectangulos(cv::Mat& imagen, const std::vector<cv::Rect>& rostros) {
     for (size_t i = 0; i < rostros.size(); i++) {
         cv::rectangle(imagen, rostros[i], cv::Scalar(0, 255, 0), 2);  // Dibuja un rectángulo verde alrededor del rostro
@@ -74,6 +64,7 @@ void ProcesadorImagen::dibujar_rectangulos(cv::Mat& imagen, const std::vector<cv
     cv::imwrite(imagen_marcada, imagen);  // Asegurarnos de que se guarde en BGR
 }
 
+//IMPLEMENTAR PARALELISMO
 void ProcesadorImagen::guardar_rostros_individuales(cv::Mat& imagen, const std::vector<cv::Rect>& rostros, const std::string& carpeta) {
     for (size_t i = 0; i < rostros.size(); i++) {
         // Extrae cada rostro detectado de la imagen invertida
