@@ -35,27 +35,30 @@ void ProcesadorImagen::convertir_a_grises(cv::Mat& imagen_color, cv::Mat& imagen
 
 std::vector<cv::Rect> ProcesadorImagen::detectar_rostros(cv::Mat& imagen_gris) {
     cv::CascadeClassifier detector_rostros;
-    if (!detector_rostros.load("data/haarcascade_frontalface_default.xml")) {
-        std::cerr << "Error cargando el archivo haarcascade_frontalface_default.xml" << std::endl;
+    if (!detector_rostros.load("data/haarcascade_frontalface_alt.xml")) {
+        std::cerr << "Error cargando el archivo haarcascade_frontalface_alt.xml" << std::endl;
         return {};
     }
 
     std::vector<cv::Rect> rostros;
-    detector_rostros.detectMultiScale(imagen_gris, rostros, 1.1, 3, 0, cv::Size(30, 30));
+    detector_rostros.detectMultiScale(imagen_gris, rostros, 1.1, 5, 0, cv::Size(30, 30));
 
     return rostros;
 }
 
 void ProcesadorImagen::dibujar_rectangulos(cv::Mat& imagen, const std::vector<cv::Rect>& rostros) {
+    // Crear una copia de la imagen para dibujar
+    cv::Mat imagen_copia = imagen.clone();
+
     // Usar OpenMP para paralelizar el dibujo de rectángulos
     #pragma omp parallel for // Directiva para paralelizar el bucle
     for (size_t i = 0; i < rostros.size(); i++) {
-        cv::rectangle(imagen, rostros[i], cv::Scalar(0, 255, 0), 2);  // Dibuja un rectángulo verde alrededor del rostro
+        cv::rectangle(imagen_copia, rostros[i], cv::Scalar(0, 255, 0), 2);  // Dibuja un rectángulo verde alrededor del rostro
     }
 
     // Guarda la imagen con los rostros marcados
     std::string imagen_marcada = "imagen_marcada.jpg";
-    cv::imwrite(imagen_marcada, imagen);  // Asegurarnos de que se guarde en BGR
+    cv::imwrite(imagen_marcada, imagen_copia);  // Asegurarnos de que se guarde en BGR
 }
 
 void ProcesadorImagen::guardar_rostros_individuales(cv::Mat& imagen, const std::vector<cv::Rect>& rostros, const std::string& carpeta) {
