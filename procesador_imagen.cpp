@@ -28,16 +28,9 @@ void ProcesadorImagen::procesar_imagen(cv::Mat& imagen, const std::string& ruta_
     guardar_rostros_individuales(imagen, rostros, carpeta);
 }
 
-//IMPLEMENTAR PARALELISMO
 void ProcesadorImagen::convertir_a_grises(cv::Mat& imagen_color, cv::Mat& imagen_gris) {
-    // Convertimos cada pixel a escala de grises.
-    for (int i = 0; i < imagen_color.rows; i++) {
-        for (int j = 0; j < imagen_color.cols; j++) {
-            cv::Vec3b color = imagen_color.at<cv::Vec3b>(i, j);
-            uchar gris = 0.299 * color[2] + 0.587 * color[1] + 0.114 * color[0];
-            imagen_gris.at<uchar>(i, j) = gris;
-        }
-    }
+    // Usar la función cvtColor de OpenCV para convertir a escala de grises.
+    cv::cvtColor(imagen_color, imagen_gris, cv::COLOR_BGR2GRAY);
 }
 
 std::vector<cv::Rect> ProcesadorImagen::detectar_rostros(cv::Mat& imagen_gris) {
@@ -53,8 +46,9 @@ std::vector<cv::Rect> ProcesadorImagen::detectar_rostros(cv::Mat& imagen_gris) {
     return rostros;
 }
 
-//IMPLEMENTAR PARALELISMO
 void ProcesadorImagen::dibujar_rectangulos(cv::Mat& imagen, const std::vector<cv::Rect>& rostros) {
+    // Usar OpenMP para paralelizar el dibujo de rectángulos
+    #pragma omp parallel for // Directiva para paralelizar el bucle
     for (size_t i = 0; i < rostros.size(); i++) {
         cv::rectangle(imagen, rostros[i], cv::Scalar(0, 255, 0), 2);  // Dibuja un rectángulo verde alrededor del rostro
     }
@@ -64,14 +58,14 @@ void ProcesadorImagen::dibujar_rectangulos(cv::Mat& imagen, const std::vector<cv
     cv::imwrite(imagen_marcada, imagen);  // Asegurarnos de que se guarde en BGR
 }
 
-//IMPLEMENTAR PARALELISMO
 void ProcesadorImagen::guardar_rostros_individuales(cv::Mat& imagen, const std::vector<cv::Rect>& rostros, const std::string& carpeta) {
+    #pragma omp parallel for // Directiva para paralelizar el bucle
     for (size_t i = 0; i < rostros.size(); i++) {
-        // Extrae cada rostro detectado de la imagen invertida
-        cv::Mat rostro = imagen(rostros[i]);
+        // Extrae cada rostro detectado de la imagen
+        cv::Mat rostro_img = imagen(rostros[i]);
 
         // Guarda cada rostro en la carpeta
         std::string nombre_archivo = carpeta + "/rostro_" + std::to_string(i) + ".jpg";
-        cv::imwrite(nombre_archivo, rostro);  // Guardar el rostro individual
+        cv::imwrite(nombre_archivo, rostro_img);  // Guardar el rostro individual
     }
 }
