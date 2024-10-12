@@ -18,10 +18,10 @@ clean:
 	rm -f $(OBJS) $(EXEC)
 
 run-invertir:
-	./$(EXEC) imagen_ejemplo.jpg imagen_procesada.jpg -i
+	./$(EXEC) imagen_ejemplo.jpg imagen_procesada.jpg -p
 
 run-detectar:
-	./$(EXEC) imagen_ejemplo.jpg imagen_procesada.jpg -d
+	./$(EXEC) imagen_ejemplo.jpg imagen_procesada.jpg -p
 
 install-deps:
 	@echo "Instalando dependencias..."

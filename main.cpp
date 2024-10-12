@@ -5,6 +5,7 @@
 #include "procesador_imagen.h"
 #include <omp.h>
 #include <opencv2/opencv.hpp>
+#include <memory>  // Para usar std::shared_ptr
 
 // Muestra las instrucciones de uso del programa
 void mostrar_uso(const char* nombre_programa) {
@@ -37,20 +38,21 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    jpeg_manager gestor;
+    // Crear una instancia del gestor de JPEG usando punteros inteligentes
+    std::shared_ptr<jpeg_manager> gestor = std::make_shared<jpeg_manager>();
 
     // 4. Leer archivo JPEG de entrada
-    if (!gestor.leer_archivo(archivo_entrada)) {
+    if (!gestor->leer_archivo(archivo_entrada)) {
         std::cerr << "Error al leer el archivo: " << archivo_entrada << std::endl;
         return 1;
     }
 
     std::cout << "Archivo " << archivo_entrada << " leído exitosamente." << std::endl;
 
-    auto encabezado = gestor.ver_encabezado();
+    auto encabezado = gestor->ver_encabezado();
     std::cout << "Dimensiones de la imagen: " << encabezado.ancho << "x" << encabezado.alto << std::endl;
 
-    auto matriz = gestor.obtener_matriz_pixeles();
+    auto matriz = gestor->obtener_matriz_pixeles();
 
     if (matriz.empty() || matriz[0].empty() || matriz[0][0].empty()) {
         std::cerr << "Error: La matriz de píxeles está vacía" << std::endl;
@@ -61,10 +63,10 @@ int main(int argc, char* argv[]) {
     try {
         if (opcion == "-p") {
             // 5. Procesar la imagen (invertir colores y detectar rostros)
-            cv::Mat imagen = gestor.convertir_matriz_a_opencv(matriz);
-            ProcesadorImagen procesador;
-            procesador.procesar_imagen(imagen, archivo_salida);
-            gestor.convertir_opencv_a_matriz(imagen, matriz);  // Actualizamos la matriz después de procesar la imagen
+            std::shared_ptr<cv::Mat> imagen = std::make_shared<cv::Mat>(gestor->convertir_matriz_a_opencv(matriz));
+            std::shared_ptr<ProcesadorImagen> procesador = std::make_shared<ProcesadorImagen>();
+            procesador->procesar_imagen(imagen, archivo_salida);
+            gestor->convertir_opencv_a_matriz(*imagen, matriz);  // Actualizamos la matriz después de procesar la imagen
         } else {
             mostrar_uso(argv[0]);
             return 1;
@@ -75,7 +77,7 @@ int main(int argc, char* argv[]) {
     }
 
     // 6. Crear nuevo archivo JPEG con la imagen procesada
-    if (!gestor.crear_archivo(archivo_salida, matriz)) {
+    if (!gestor->crear_archivo(archivo_salida, matriz)) {
         std::cerr << "Error al crear el nuevo archivo: " << archivo_salida << std::endl;
         return 1;
     }
