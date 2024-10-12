@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>  // Para punteros inteligentes
 #include <opencv2/opencv.hpp>  // Agregamos OpenCV para manejar Matrices de OpenCV
 
 // Clase para gestionar operaciones de lectura y escritura de archivos JPEG
@@ -15,8 +16,8 @@ private:
         int canales;  // Número de canales de color (normalmente 3 para RGB)
     };
 
-    Encabezado encabezado;  // Almacena la información del encabezado de la imagen actual
-    std::vector<std::vector<std::vector<unsigned char>>> matriz_pixeles;  // Matriz 3D para almacenar los datos de píxeles
+    std::shared_ptr<Encabezado> encabezado;  // Almacena la información del encabezado de la imagen actual usando un puntero inteligente
+    std::shared_ptr<std::vector<std::vector<std::vector<unsigned char>>>> matriz_pixeles;  // Matriz 3D para almacenar los datos de píxeles usando un puntero inteligente
 
 public:
     jpeg_manager();
