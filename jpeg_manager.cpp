@@ -4,17 +4,20 @@
 #include <jpeglib.h>
 #include <cstring>
 #include <cerrno>
-#include <memory>  // Para punteros inteligentes
+#include <memory>
 #include <omp.h>
-#include <opencv2/opencv.hpp>  // Agregar OpenCV
+#include <opencv2/opencv.hpp>
 
-jpeg_manager::jpeg_manager() : encabezado{0, 0, 0} {}
-
-jpeg_manager::~jpeg_manager() {
-    // Los punteros inteligentes se encargan automáticamente de la liberación de memoria
+// Constructor: Inicializamos el encabezado y la matriz de píxeles como punteros inteligentes
+jpeg_manager::jpeg_manager() {
+    encabezado = std::make_shared<Encabezado>();
+    matriz_pixeles = std::make_shared<std::vector<std::vector<std::vector<unsigned char>>>>();
 }
 
-// Lee un archivo JPEG y almacena su contenido usando punteros inteligentes
+// Destructor: No es necesario liberar memoria manualmente porque std::shared_ptr lo maneja automáticamente
+jpeg_manager::~jpeg_manager() {}
+
+// Lee un archivo JPEG y almacena su contenido
 bool jpeg_manager::leer_archivo(const std::string& nombre_archivo) {
     FILE* infile = fopen(nombre_archivo.c_str(), "rb");
     if (!infile) {
@@ -36,33 +39,35 @@ bool jpeg_manager::leer_archivo(const std::string& nombre_archivo) {
 
         jpeg_start_decompress(&cinfo);
 
-        encabezado.ancho = cinfo.output_width;
-        encabezado.alto = cinfo.output_height;
-        encabezado.canales = cinfo.output_components;
+        // Almacenamos los datos del encabezado
+        encabezado->ancho = cinfo.output_width;
+        encabezado->alto = cinfo.output_height;
+        encabezado->canales = cinfo.output_components;
 
-        if (encabezado.canales != 3) {
+        if (encabezado->canales != 3) {
             throw std::runtime_error("Solo se soportan imágenes RGB (3 canales)");
         }
 
         int row_stride = cinfo.output_width * cinfo.output_components;
-        auto buffer = std::make_unique<JSAMPLE[]>(row_stride);  // Usamos puntero inteligente para manejar el buffer
+        auto buffer = std::make_unique<JSAMPLE[]>(row_stride);  // Buffer temporal para cada fila de la imagen
         JSAMPROW row_pointer[1];
         row_pointer[0] = buffer.get();
 
-        // Usamos un puntero inteligente para la matriz de píxeles
+        // Inicializamos la matriz de píxeles con el tamaño adecuado
         matriz_pixeles = std::make_shared<std::vector<std::vector<std::vector<unsigned char>>>>(
-            encabezado.alto, 
-            std::vector<std::vector<unsigned char>>(encabezado.ancho, std::vector<unsigned char>(encabezado.canales))
+            encabezado->alto, 
+            std::vector<std::vector<unsigned char>>(encabezado->ancho, std::vector<unsigned char>(encabezado->canales))
         );
 
+        // Leemos las líneas de la imagen y las almacenamos en la matriz de píxeles
         while (cinfo.output_scanline < cinfo.output_height) {
             jpeg_read_scanlines(&cinfo, row_pointer, 1);
             int y = cinfo.output_scanline - 1;
 
             #pragma omp parallel for
             for (JDIMENSION x = 0; x < cinfo.output_width; ++x) {
-                for (int c = 0; c < encabezado.canales; ++c) {
-                    (*matriz_pixeles)[y][x][c] = buffer[x * encabezado.canales + c];
+                for (int c = 0; c < encabezado->canales; ++c) {
+                    (*matriz_pixeles)[y][x][c] = buffer[x * encabezado->canales + c];
                 }
             }
         }
@@ -80,51 +85,17 @@ bool jpeg_manager::leer_archivo(const std::string& nombre_archivo) {
     return true;
 }
 
-// Convierte la matriz de píxeles a formato OpenCV (cv::Mat)
-cv::Mat jpeg_manager::convertir_matriz_a_opencv(const std::vector<std::vector<std::vector<unsigned char>>>& matriz) const {
-    int filas = matriz.size();
-    int columnas = matriz[0].size();
-    cv::Mat imagen(filas, columnas, CV_8UC3);  // CV_8UC3: 8-bit unsigned, 3 channels (RGB)
-
-    for (int i = 0; i < filas; i++) {
-        for (int j = 0; j < columnas; j++) {
-            cv::Vec3b& color = imagen.at<cv::Vec3b>(i, j);
-            color[0] = matriz[i][j][0];  // Canal azul
-            color[1] = matriz[i][j][1];  // Canal verde
-            color[2] = matriz[i][j][2];  // Canal rojo
-        }
-    }
-
-    return imagen;
-}
-
-// Convierte una imagen OpenCV a matriz de píxeles
-void jpeg_manager::convertir_opencv_a_matriz(const cv::Mat& imagen, std::vector<std::vector<std::vector<unsigned char>>>& matriz) {
-    int filas = imagen.rows;
-    int columnas = imagen.cols;
-    matriz.resize(filas, std::vector<std::vector<unsigned char>>(columnas, std::vector<unsigned char>(3)));
-
-    for (int i = 0; i < filas; i++) {
-        for (int j = 0; j < columnas; j++) {
-            const cv::Vec3b& color = imagen.at<cv::Vec3b>(i, j);
-            matriz[i][j][0] = color[0];  // Canal azul
-            matriz[i][j][1] = color[1];  // Canal verde
-            matriz[i][j][2] = color[2];  // Canal rojo
-        }
-    }
-}
-
 // Obtiene la información del encabezado de la imagen actual
 jpeg_manager::Encabezado jpeg_manager::ver_encabezado() const {
-    return encabezado;
+    return *encabezado;  // Retornamos el valor del encabezado, desreferenciando el puntero inteligente
 }
 
 // Obtiene la matriz de píxeles de la imagen actual
 std::vector<std::vector<std::vector<unsigned char>>> jpeg_manager::obtener_matriz_pixeles() const {
-    return *matriz_pixeles;
+    return *matriz_pixeles;  // Retornamos la matriz de píxeles desreferenciada
 }
 
-// Crea un nuevo archivo JPEG a partir de una matriz de píxeles usando punteros inteligentes
+// Crea un nuevo archivo JPEG a partir de una matriz de píxeles
 bool jpeg_manager::crear_archivo(const std::string& nombre_archivo, const std::vector<std::vector<std::vector<unsigned char>>>& nueva_matriz) {
     if (nueva_matriz.empty() || nueva_matriz[0].empty() || nueva_matriz[0][0].empty()) {
         std::cerr << "Error: La matriz de píxeles está vacía" << std::endl;
@@ -174,4 +145,38 @@ bool jpeg_manager::crear_archivo(const std::string& nombre_archivo, const std::v
     jpeg_destroy_compress(&cinfo);
 
     return true;
+}
+
+// Convierte la matriz de píxeles a formato OpenCV (cv::Mat)
+cv::Mat jpeg_manager::convertir_matriz_a_opencv(const std::vector<std::vector<std::vector<unsigned char>>>& matriz) const {
+    int filas = matriz.size();
+    int columnas = matriz[0].size();
+    cv::Mat imagen(filas, columnas, CV_8UC3);  // CV_8UC3: 8-bit unsigned, 3 channels (RGB)
+
+    for (int i = 0; i < filas; i++) {
+        for (int j = 0; j < columnas; j++) {
+            cv::Vec3b& color = imagen.at<cv::Vec3b>(i, j);
+            color[0] = matriz[i][j][0];  // Canal azul
+            color[1] = matriz[i][j][1];  // Canal verde
+            color[2] = matriz[i][j][2];  // Canal rojo
+        }
+    }
+
+    return imagen;
+}
+
+// Convierte una imagen OpenCV a matriz de píxeles
+void jpeg_manager::convertir_opencv_a_matriz(const cv::Mat& imagen, std::vector<std::vector<std::vector<unsigned char>>>& matriz) {
+    int filas = imagen.rows;
+    int columnas = imagen.cols;
+    matriz.resize(filas, std::vector<std::vector<unsigned char>>(columnas, std::vector<unsigned char>(3)));
+
+    for (int i = 0; i < filas; i++) {
+        for (int j = 0; j < columnas; j++) {
+            const cv::Vec3b& color = imagen.at<cv::Vec3b>(i, j);
+            matriz[i][j][0] = color[0];  // Canal azul
+            matriz[i][j][1] = color[1];  // Canal verde
+            matriz[i][j][2] = color[2];  // Canal rojo
+        }
+    }
 }

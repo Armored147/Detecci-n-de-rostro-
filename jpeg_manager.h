@@ -3,21 +3,22 @@
 
 #include <string>
 #include <vector>
-#include <memory>  // Para punteros inteligentes
-#include <opencv2/opencv.hpp>  // Agregamos OpenCV para manejar Matrices de OpenCV
+#include <memory>
+#include <opencv2/opencv.hpp>  // OpenCV para manejar imágenes
 
-// Clase para gestionar operaciones de lectura y escritura de archivos JPEG
 class jpeg_manager {
 private:
-    // Estructura para almacenar información básica del encabezado de un archivo JPEG
     struct Encabezado {
-        int ancho;    // Ancho de la imagen en píxeles
-        int alto;     // Alto de la imagen en píxeles
-        int canales;  // Número de canales de color (normalmente 3 para RGB)
+        int ancho;
+        int alto;
+        int canales;
     };
 
-    std::shared_ptr<Encabezado> encabezado;  // Almacena la información del encabezado de la imagen actual usando un puntero inteligente
-    std::shared_ptr<std::vector<std::vector<std::vector<unsigned char>>>> matriz_pixeles;  // Matriz 3D para almacenar los datos de píxeles usando un puntero inteligente
+    // Puntero inteligente para almacenar el encabezado
+    std::shared_ptr<Encabezado> encabezado;
+    
+    // Puntero inteligente para la matriz de píxeles
+    std::shared_ptr<std::vector<std::vector<std::vector<unsigned char>>>> matriz_pixeles;
 
 public:
     jpeg_manager();
@@ -26,16 +27,15 @@ public:
     // Lee un archivo JPEG y almacena su contenido
     bool leer_archivo(const std::string& nombre_archivo);
 
-    // Obtiene la información del encabezado de la imagen actual
+    // Obtiene la información del encabezado
     Encabezado ver_encabezado() const;
 
-    // Obtiene la matriz de píxeles de la imagen actual
+    // Obtiene la matriz de píxeles de la imagen
     std::vector<std::vector<std::vector<unsigned char>>> obtener_matriz_pixeles() const;
 
     // Crea un nuevo archivo JPEG a partir de una matriz de píxeles
     bool crear_archivo(const std::string& nombre_archivo, const std::vector<std::vector<std::vector<unsigned char>>>& nueva_matriz);
 
-    // **Nuevas funciones para manejo de OpenCV**
     // Convierte la matriz de píxeles a formato OpenCV (cv::Mat)
     cv::Mat convertir_matriz_a_opencv(const std::vector<std::vector<std::vector<unsigned char>>>& matriz) const;
 
@@ -43,4 +43,4 @@ public:
     void convertir_opencv_a_matriz(const cv::Mat& imagen, std::vector<std::vector<std::vector<unsigned char>>>& matriz);
 };
 
-#endif // JPEG_MANAGER_H
+#endif  // JPEG_MANAGER_H
