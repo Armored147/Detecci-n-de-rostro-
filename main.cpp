@@ -74,12 +74,12 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // 6. Crear nuevo archivo JPEG con la imagen procesada
+/*     // 6. Crear nuevo archivo JPEG con la imagen procesada
     if (!gestor.crear_archivo(archivo_salida, matriz)) {
         std::cerr << "Error al crear el nuevo archivo: " << archivo_salida << std::endl;
         return 1;
     }
 
     std::cout << "Nuevo archivo creado exitosamente: " << archivo_salida << std::endl;
-    return 0;
+    return 0; */
 }
