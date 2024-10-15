@@ -2,7 +2,7 @@
 #define PROCESADOR_IMAGEN_H
 
 #include <vector>
-#include <memory>  // Para punteros inteligentes
+#include <memory>  // Para usar std::shared_ptr
 #include <opencv2/opencv.hpp>
 
 class ProcesadorImagen {

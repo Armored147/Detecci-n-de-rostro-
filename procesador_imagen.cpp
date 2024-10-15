@@ -5,11 +5,11 @@
 #include <memory>  // Para usar std::shared_ptr
 
 void ProcesadorImagen::procesar_imagen(const std::shared_ptr<cv::Mat>& imagen, const std::string& ruta_imagen) {
-    // Paso 1: Convertir la imagen escala de grises para la detección de rostros
+    // Paso 1: Convertir la imagen a escala de grises para la detección de rostros
     std::shared_ptr<cv::Mat> imagen_gris = std::make_shared<cv::Mat>(imagen->size(), CV_8UC1);
     convertir_a_grises(imagen, imagen_gris);
 
-    // Paso 2: Detectar los rostros en la imagen gris
+    // Paso 2: Detectar los rostros en la imagen en escala de grises
     std::vector<cv::Rect> rostros = detectar_rostros(imagen_gris);
 
     if (rostros.empty()) {
@@ -29,7 +29,7 @@ void ProcesadorImagen::procesar_imagen(const std::shared_ptr<cv::Mat>& imagen, c
 }
 
 void ProcesadorImagen::convertir_a_grises(const std::shared_ptr<cv::Mat>& imagen_color, std::shared_ptr<cv::Mat>& imagen_gris) {
-    // Usar la función cvtColor de OpenCV para convertir a escala de grises.
+    // Usar la función cvtColor de OpenCV para convertir a escala de grises
     cv::cvtColor(*imagen_color, *imagen_gris, cv::COLOR_BGR2GRAY);
 }
 
@@ -64,10 +64,10 @@ void ProcesadorImagen::dibujar_rectangulos(const std::shared_ptr<cv::Mat>& image
 void ProcesadorImagen::guardar_rostros_individuales(const std::shared_ptr<cv::Mat>& imagen, const std::vector<cv::Rect>& rostros, const std::string& carpeta) {
     #pragma omp parallel for
     for (size_t i = 0; i < rostros.size(); i++) {
-        // Extrae cada rostro detectado de la imagen
+        // Extraer cada rostro detectado de la imagen
         std::shared_ptr<cv::Mat> rostro_img = std::make_shared<cv::Mat>((*imagen)(rostros[i]));
 
-        // Guarda cada rostro en la carpeta
+        // Guardar cada rostro en la carpeta
         std::string nombre_archivo = carpeta + "/rostro_" + std::to_string(i) + ".jpg";
         cv::imwrite(nombre_archivo, *rostro_img);  // Guardar el rostro individual
     }
