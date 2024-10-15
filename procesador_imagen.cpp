@@ -47,11 +47,10 @@ std::vector<cv::Rect> ProcesadorImagen::detectar_rostros(cv::Mat& imagen_gris) {
 }
 
 void ProcesadorImagen::dibujar_rectangulos(cv::Mat& imagen, const std::vector<cv::Rect>& rostros) {
-    // Crear una copia de la imagen para dibujar
     cv::Mat imagen_copia = imagen.clone();
 
     // Usar OpenMP para paralelizar el dibujo de rectángulos
-    #pragma omp parallel for // Directiva para paralelizar el bucle
+    #pragma omp parallel for 
     for (size_t i = 0; i < rostros.size(); i++) {
         cv::rectangle(imagen_copia, rostros[i], cv::Scalar(0, 255, 0), 2);  // Dibuja un rectángulo verde alrededor del rostro
     }
